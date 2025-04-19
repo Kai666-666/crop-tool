@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Kai 裁圖工具（203×334）</title>
+  <style>
+    body{background:#1e1e1e;color:#fff;text-align:center;font-family:sans-serif;padding:10px;}
+    canvas{border:1px solid #fff;touch-action:none;}
+    input,button{margin:10px;}
+  </style>
+</head>
+<body>
+  <h3>Kai 專屬裁圖工具（203×334）</h3>
+  <input type="file" id="upload" accept="image/*"><br>
+  <canvas id="canvas"></canvas><br>
+  <button onclick="downloadCropped()">下載裁切圖片</button>
+  <script>
+    const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+    const upload=document.getElementById('upload');
+    let img=new Image(),dragging=false,startX=0,startY=0;
+    const cropW=203,cropH=334;
+    let cropX=20,cropY=20,scale=1;
+    upload.onchange=e=>{
+      const file=e.target.files[0]; if(!file)return;
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        img.onload=()=>{
+          scale=Math.min(window.innerWidth/img.width,1);
+          canvas.width=img.width*scale;
+          canvas.height=img.height*scale;
+          cropX=10;cropY=10;draw();
+        };
+        img.src=ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    };
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      ctx.strokeStyle='red';ctx.lineWidth=2;
+      ctx.strokeRect(cropX,cropY,cropW,cropH);
+    }
+    function handleMove(x,y){
+      cropX=x-startX; cropY=y-startY; draw();
+    }
+    canvas.addEventListener('touchstart',e=>{
+      const t=e.touches[0]; startX=t.clientX-cropX; startY=t.clientY-cropY;
+      dragging=true;
+    });
+    canvas.addEventListener('touchmove',e=>{
+      if(!dragging)return;
+      const t=e.touches[0]; handleMove(t.clientX,t.clientY);
+    });
+    canvas.addEventListener('touchend',()=>dragging=false);
+    canvas.addEventListener('mousedown',e=>{
+      dragging=true; startX=e.offsetX-cropX; startY=e.offsetY-cropY;
+    });
+    canvas.addEventListener('mousemove',e=>{
+      if(dragging) handleMove(e.offsetX,e.offsetY);
+    });
+    canvas.addEventListener('mouseup',()=>dragging=false);
+    function downloadCropped(){
+      const ox=cropX/scale,oy=cropY/scale;
+      const tcan=document.createElement('canvas'),tctx=tcan.getContext('2d');
+      tcan.width=cropW; tcan.height=cropH;
+      tctx.drawImage(img,ox,oy,cropW,cropH,0,0,cropW,cropH);
+      const link=document.createElement('a');
+      link.download='cropped.jpg';
+      link.href=tcan.toDataURL();
+      link.click();
+    }
+  </script>
+</body>
+</html>
